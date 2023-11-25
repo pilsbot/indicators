@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "../include/config.h"
+#include "../include/neo_config.h"
 #include "../generated/ws2812.pio.h"
 #include "ws2812.h"
 #include "NeoPixel.h"

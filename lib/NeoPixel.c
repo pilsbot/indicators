@@ -648,6 +648,7 @@ uint8_t NEO_TransferPixels(void) {
 }
 
 void NEO_Init(void) {
+  WS2812_Init();
   NEO_ClearAllPixel();
 }
 

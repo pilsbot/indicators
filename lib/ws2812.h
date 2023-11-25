@@ -8,6 +8,7 @@
 #define WS2812_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 /*!
  * \brief Transfer the LED data buffer to the hardware

@@ -8,7 +8,7 @@
 #define NEOPIXEL_H_
 
 #include <stdint.h>
-#include "../include/config.h"
+#include "../include/neo_config.h"
 
 enum Neopixel_ReturnCode // : uint8_t // lol 'c'
 {

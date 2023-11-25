@@ -30,6 +30,10 @@ add_executable(indicator
         ${indicator_SRC}
         ${indicator_LIB}
 )
+target_include_directories(indicator
+        PRIVATE "include"
+)
+
 
 # Add pico_stdlib library which aggregates commonly used features
 target_link_libraries(indicator
