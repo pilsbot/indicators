@@ -1,52 +1,98 @@
-#include <stdio.h>
-#include <array>
-#include "pico/stdlib.h"
 #include <config.hpp>
 #include "lights.hpp"
 
-void do_static_fun();
+#include <stdio.h>
+#include <array>
+#include "pico/stdlib.h"
+#include <protocol.hpp>
+#include <pico/multicore.h>
+#include <optional>
+
+
+// let's see whether this survives multicore
+static Lights lights;
+
+void
+do_static_fun();
+
+std::optional<Command>
+try_read_command();
+
+void
+lightsUpdateService()
+{
+    while(true)
+    {
+        const auto vorher = get_absolute_time();
+        lights.update();
+        sleep_until(delayed_by_ms(vorher, 1000 / lights.getDesiredTicksPerSecond()));
+    }
+}
 
 int main() {
     setup_default_uart();
     stdio_init_all();
 
-    Lights lights;
+    lights.init();
     lights.setParty(true);
-    printf("set party mode\n");
+    // printf("set party mode\n");
+
+    multicore_launch_core1(lightsUpdateService);
 
     while (true)
     {
-        auto elapsed_seconds = to_ms_since_boot(get_absolute_time()) / 1000;
-        if (true) // (elapsed_seconds / 10) & 1)
+        // const auto vorher = get_absolute_time();
+        const auto command = try_read_command();
+        if(command)
         {
-            // so, every even number of 10 seconds multiples...?
-            switch (elapsed_seconds % 10)
+            const auto& value = command->value;
+            switch (command->type)
             {
-                case 0:
-                    lights.setIndicatorLeft();
-                    printf("Indicator on\n");
+                case Command::Type::headlight:
+                    lights.setHeadlight(value);
                     break;
-                case 5:
-                    lights.setIndicatorLeft(false);
-                    lights.setHeadlight();
-                    printf("Headlight on\n");
+                case Command::Type::indicator:
+                    if (command->value & 0b10)
+                        lights.setIndicatorLeft(value & 0b01);
+                    else
+                        lights.setIndicatorRight(value & 0b01);
                     break;
-                case 9:
-                    lights.setHeadlight(false);
-                    printf("nearly all off\n");
+                case Command::Type::brake:
+                    lights.setBrake(value);
+                    break;
+                case Command::Type::party:
+                    lights.setParty(value);
+                    break;
+                default:
+                    // nothing
+                    printf("Got invalid command %d\n", command->type);
                     break;
             }
-            lights.update();
-            sleep_ms(15);   // dummy serial connection
         }
-        else
-        {
-
-            do_static_fun();
-        }
-    }
+        // lights.update();
+        // sleep_until(delayed_by_ms(vorher, 1000 / lights.getDesiredTicksPerSecond()));
+    };
 
     return 0;
+}
+
+std::optional<Command>
+try_read_command()
+{
+    std::array <uint8_t, sizeof(Command)> buf  = {{}};
+    uint8_t p = 0;
+
+    while (p < buf.size())
+    {
+        auto maybeChar = getchar_timeout_us(1000 * 100);
+        if (maybeChar == PICO_ERROR_TIMEOUT)
+            return std::nullopt;
+
+        buf[p] = maybeChar;
+        p++;
+    }
+
+    return *reinterpret_cast<Command*>(&buf);
 }
 
 

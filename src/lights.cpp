@@ -4,11 +4,6 @@ extern "C"
 #include "../lib/NeoPixel.h"
 }
 
-Lights::Lights()
-{
-    init();
-}
-
 void Lights::init()
 {
     // should be a singleton, but you pay attention, do you??
@@ -49,7 +44,6 @@ void Lights::setParty(bool val){state.party = val;};
 
 void Lights::update()
 {
-    const uint8_t ticks_per_indication = 0b100000;
     bool filling = (tick & ticks_per_indication);
     //indicators
     if(filling)

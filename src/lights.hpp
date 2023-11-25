@@ -33,13 +33,20 @@ class Lights
     static constexpr Color party     = {0xAA,    0, 0xBB};
     static constexpr Color off       = {   0,    0,    0};
 
+    static constexpr uint8_t ticks_per_indication = 0b0100000;
+
     uint8_t tick = 0;
 public:
-    Lights();
 
     void init();
     void clear();
     void blinkInfo(const Color color, const bool reverse = false);
+
+    static constexpr uint8_t
+    getDesiredTicksPerSecond()
+    {
+        return ticks_per_indication * 15 / 8;
+    }
 
 
     void setIndicatorLeft(bool val = true);

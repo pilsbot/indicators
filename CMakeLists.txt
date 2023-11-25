@@ -55,6 +55,7 @@ target_link_libraries(indicator
         hardware_pio
         hardware_dma
         hardware_irq
+        pico_multicore
         )
 
 pico_set_program_name(indicator "Pilsbot Indicators")
