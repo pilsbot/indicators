@@ -4,16 +4,20 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include "../include/config.h"
+#include "../generated/ws2812.pio.h"
+#include "ws2812.h"
+#include "NeoPixel.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/config.h"
-#include "NeoPixel.h"
-#include "hardware/pio.h"
-#include "hardware/clocks.h"
-#include "../generated/ws2812.pio.h"
-#include "ws2812.h"
+#include <hardware/pio.h>
+#include <hardware/clocks.h>
+#include <hardware/dma.h>
+#include <hardware/irq.h>
 #include <pico/stdlib.h>
+#include <pico/sem.h>
 
 
 /* timing (+/-150ns):
@@ -113,5 +117,3 @@ void WS2812_Init(void) {
   dma_init(pio, WS2812_sm);
 #endif
 }
-
-#endif /* PL_CONFIG_USE_NEO_PIXEL_HW */

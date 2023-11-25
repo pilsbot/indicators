@@ -1,3 +1,5 @@
+#pragma once
+
 #define NEOC_NOF_COLORS        (3)  /* number of colors: 3 for RGB, 4 for RGBW */
 
 #define NEOC_PIN_START         (14) /* start of physical GPIO pin number: GPIO2 */
@@ -23,11 +25,5 @@
 #define NEOC_PIO_32BIT_PIXELS     (1) /* pixels are organized as 32bit values, optimized for the RP2040 PIO, supporting 1 and up to 8 lanes */
 
 
-
 #include "types.h"
 
-static constexpr PinNr internalLED = 16;
-static constexpr PinNr externalStrip = 14;
-
-static constexpr ColorIntensity max_brightness = 0xA0;
-static constexpr uint16_t num_leds = 20;

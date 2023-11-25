@@ -10,6 +10,12 @@
 #include <stdint.h>
 #include "../include/config.h"
 
+enum Neopixel_ReturnCode // : uint8_t // lol 'c'
+{
+    ERR_OK,
+    ERR_RANGE
+};
+
 #define NEO_LANE_START          NEOC_LANE_START  /* starting lane number */
 #define NEO_LANE_END            NEOC_LANE_END  /* end lane number */
 #define NEO_NOF_LANES           NEOC_NOF_LANES

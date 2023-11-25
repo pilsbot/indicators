@@ -2,7 +2,18 @@
 #include <array>
 #include "pico/stdlib.h"
 #include "../include/config.h"
+extern "C"
+{
+#include "../lib/NeoPixel.h"
 #include "../lib/ws2812.h"
+}
+
+
+static constexpr PinNr internalLED = 16;
+static constexpr PinNr externalStrip = 14;
+
+static constexpr ColorIntensity max_brightness = 0xA0;
+static constexpr uint16_t num_leds = 20;
 
 
 static std::array<Pixel, num_leds> transmitBuf;
@@ -11,30 +22,22 @@ int main() {
     setup_default_uart();
     stdio_init_all();
 
-    PIO pio = pio0;
-    int sm = 0;
-    uint offset = pio_add_program(pio, &ws2812_program);
-    ColorIntensity cnt = 0;
-
-    ws2812_program_init(pio, sm, offset, externalStrip, 800000, true);
+    NEO_Init();
+    WS2812_Init();
 
     while (true)
     {
       printf("Hello, world!\n");
-      for (cnt = 0; cnt < max_brightness; cnt++)
+      for (ColorIntensity cnt = 0; cnt < max_brightness; cnt++)
       {
-          put_rgb(cnt, max_brightness - cnt, 0);
-          sleep_ms(3);
-      }
-      for (cnt = 0; cnt < max_brightness; cnt++)
-      {
-          put_rgb(max_brightness - cnt, 0, cnt);
-          sleep_ms(3);
-      }
-      for (cnt = 0; cnt < max_brightness; cnt++)
-      {
-          put_rgb(0, cnt, max_brightness - cnt);
-          sleep_ms(3);
+        for (uint8_t i = 0; i < NEOC_NOF_LEDS_IN_LANE; i++)
+        {
+          if (NEO_SetPixelRGB(0, i, cnt, cnt/2, max_brightness - cnt) != Neopixel_ReturnCode::ERR_OK)
+          {
+            printf("setPixel returned unsuccessful\n");
+          }
+        }
+        sleep_ms(3);
       }
     }
 

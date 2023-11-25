@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <string.h>
 #include "NeoPixel.h"
+#include "ws2812.h"
 
 static const uint8_t gamma8[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -101,8 +103,6 @@ NEO_PixelColor NEO_BrightnessFactorColor(NEO_PixelColor color, uint8_t factor) {
   return color;
 }
 
-#if PL_CONFIG_USE_NEO_PIXEL_HW
-
 #define VAL0          0  /* 0 Bit: 0.396 us (need: 0.4 us low) */
 #define VAL1          1  /* 1 Bit: 0.792 us (need: 0.8 us high */
 
@@ -169,7 +169,7 @@ uint8_t NEO_SetPixelColor(NEO_PixelIdxT lane, NEO_PixelIdxT pos, uint32_t color)
 
 /* sets the color of an individual pixel */
 uint8_t NEO_SetPixelRGB(NEO_PixelIdxT lane, NEO_PixelIdxT pos, uint8_t red, uint8_t green, uint8_t blue) {
-  if (!(lane>=NEO_LANE_START && lane<=NEO_LANE_END) || pos>=NEO_NOF_LEDS_IN_LANE) {
+  if (lane < NEO_LANE_START || lane >= NEO_LANE_END || pos >= NEO_NOF_LEDS_IN_LANE) {
     return ERR_RANGE; /* error, out of range */
   }
 #if NEOC_PIO_32BIT_PIXELS && NEO_NOF_LANES==1
@@ -664,5 +664,4 @@ uint8_t NEO_TransferPixels(void) {
 void NEO_Init(void) {
   NEO_ClearAllPixel();
 }
-#endif /* PL_CONFIG_USE_NEO_PIXEL_HW */
 
