@@ -1,30 +1,50 @@
-#include <Arduino.h>
+#include <stdio.h>
+#include "pico/stdlib.h"
+#include "../include/types.h"
+#include "../include/ws2812.pio.h"
 
-#include <FastLED.h>
-
-// How many leds in your strip?
-#define NUM_LEDS 1
-
-// For led chips like WS2812, which have a data line, ground, and power, you just
-// need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
-// ground, and power), like the LPD8806 define both DATA_PIN and CLOCK_PIN
-// Clock pin only needed for SPI based chipsets when not using hardware SPI
-#define DATA_PIN 16
-
-// Define the array of leds
-CRGB leds[NUM_LEDS];
-
-void setup() {
-    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
+void put_pixel(uint32_t pixel_grb)
+{
+    pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
+}
+void put_rgb(ColorIntensity red, ColorIntensity green, ColorIntensity blue)
+{
+    uint32_t mask = (green << 16) | (red << 8) | (blue << 0);
+    put_pixel(mask);
+    put_pixel(mask);
+    put_pixel(mask);
 }
 
-void loop() {
-  // Turn the LED on, then pause
-  leds[0] = CRGB::Red;
-  FastLED.show();
-  delay(500);
-  // Now turn the LED off, then pause
-  leds[0] = CRGB::Black;
-  FastLED.show();
-  delay(500);
+int main() {
+    setup_default_uart();
+    stdio_init_all();
+
+    PIO pio = pio0;
+    int sm = 0;
+    uint offset = pio_add_program(pio, &ws2812_program);
+    uint8_t cnt = 0;
+
+    ws2812_program_init(pio, sm, offset, externalStrip, 800000, true);
+
+    while (true)
+    {
+      printf("Hello, world!\n");
+      for (cnt = 0; cnt < 0xff; cnt++)
+      {
+          put_rgb(cnt, 0xff - cnt, 0);
+          sleep_ms(3);
+      }
+      for (cnt = 0; cnt < 0xff; cnt++)
+      {
+          put_rgb(0xff - cnt, 0, cnt);
+          sleep_ms(3);
+      }
+      for (cnt = 0; cnt < 0xff; cnt++)
+      {
+          put_rgb(0, cnt, 0xff - cnt);
+          sleep_ms(3);
+      }
+    }
+
+    return 0;
 }
