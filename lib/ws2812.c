@@ -19,7 +19,6 @@
 #include <pico/stdlib.h>
 #include <pico/sem.h>
 
-
 /* timing (+/-150ns):
  * 0: 400ns high, followed by 850ns low
  * 1: 850ns low,  followed by 400ns low
@@ -94,9 +93,9 @@ int WS2812_Transfer(uint32_t address, size_t nofBytes) {
     dma_channel_set_read_addr(DMA_CHANNEL, (void*)address, true); /* trigger DMA transfer */
   #else
     for(int i=0; i<NEOC_NOF_LEDS_IN_LANE; i++) { /* without DMA: writing one after each other */
-      pio_sm_put_blocking(NEO_GetPixel32bitForPIO(NEOC_LANE_START, i));
+      pio_sm_put_blocking(pio0, WS2812_sm, address);
     }
-    vTaskDelay(pdMS_TO_TICKS(1)); /* latch */
+    sleep_ms(1); /* latch */
   #endif
 #endif
   return 0; /* ok */
@@ -108,7 +107,7 @@ void WS2812_Init(void) {
 #if NEOC_NOF_LANES>1
   uint offset = pio_add_program(pio, &ws2812_parallel_program); /* add program and get offset */
   ws2812_parallel_program_init(pio, WS2812_sm, offset, NEOC_PIN_START, NEOC_NOF_LANES, 800000); /* initialize it for 800 kHz */
-#else /* multiple lanes */
+#else /* single lane */
   uint offset = pio_add_program(pio, &ws2812_program);
   ws2812_program_init(pio, WS2812_sm, offset, NEOC_PIN_START, 800000, NEOC_NOF_COLORS==4); /* initialize it for 800 kHz */
 #endif

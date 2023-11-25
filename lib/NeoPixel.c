@@ -128,20 +128,6 @@ NEO_PixelColor NEO_BrightnessFactorColor(NEO_PixelColor color, uint8_t factor) {
      * */
     static uint32_t transmitBuf[NEO_NOF_LEDS_IN_LANE*NEO_NOF_BITS_PIXEL/4]; /* we put 4x8 bits into a 32bit word */
   #endif
-#else /* e.g. Kinetis DMA */
-/* transmitBuf: Each bit in the byte is a lane/channel (X coordinate). Need 24bytes for RGB and 32 bytes for RGBW.
- * The Pixel(0,0) is at transmitBuf[0], Pixel (0,1) at transmitBuf[24] (RGB) or at transmitBuf[32] for RGBW.
- * For the Kinetis DMA, the data lines are organized in bytes: each byte corresponds to to a data to the GPIO output register (e.g. PTD7 to PTD0):
- * Bits get shifted out in grb or grbw order
- * transmitBuf[0]:  g7 g7 g7 g7 g7 g7 g7 g7   ==> bits get written to PTD7 to PTD0, where the pin number corresponds to the lane number
- * transmitBuf[1]:  g6 g6 g6 g6 g6 g6 g6 g6
- * ...
- * transmitBuf[7]:  g0 g0 g0 g0 g0 g0 g0 g0
- * transmitBuf[8]:  r7 r7 r7 r7 r7 r7 r7 r7
- * ..
- * transmitBuf[23]: b0 b0 b0 b0 b0 b0 b0 b0
- * */
-  static uint8_t transmitBuf[NEO_NOF_LEDS_IN_LANE*NEO_NOF_BITS_PIXEL];
 #endif
 
 uint8_t NEO_GetPixelColor(NEO_PixelIdxT column, NEO_PixelIdxT row, uint32_t *color) {
@@ -169,7 +155,7 @@ uint8_t NEO_SetPixelColor(NEO_PixelIdxT lane, NEO_PixelIdxT pos, uint32_t color)
 
 /* sets the color of an individual pixel */
 uint8_t NEO_SetPixelRGB(NEO_PixelIdxT lane, NEO_PixelIdxT pos, uint8_t red, uint8_t green, uint8_t blue) {
-  if (lane < NEO_LANE_START || lane >= NEO_LANE_END || pos >= NEO_NOF_LEDS_IN_LANE) {
+  if (lane < NEO_LANE_START || lane > NEO_LANE_END || pos >= NEO_NOF_LEDS_IN_LANE) {
     return ERR_RANGE; /* error, out of range */
   }
 #if NEOC_PIO_32BIT_PIXELS && NEO_NOF_LANES==1
