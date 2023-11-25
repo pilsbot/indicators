@@ -87,11 +87,23 @@ int main(int argc, char** argv)
     set_serial_properties();
     printf("Opened device %s with baudrate %d\n", params_.devicename.c_str(),params_.baud_rate);
 
-
-    Command cmd = {Command::Type::indicator, 0b10};
-    send_command(cmd);
+    Command cmd;
     while (true)
     {
+        cmd = cmd::IndicatorLeft(true);
+        send_command(cmd);
+        sleep(2);
+        cmd = cmd::IndicatorLeft(false);
+        send_command(cmd);
+        sleep(1);
+        cmd = cmd::Headlight(0xFF);
+        send_command(cmd);
+        sleep(1);
+        cmd = cmd::IndicatorLeft(true);
+        send_command(cmd);
+        sleep(1);
+        cmd = cmd::Headlight(0x00);
+        send_command(cmd);
         sleep(1);
     }
     ::close(serial_fd_);

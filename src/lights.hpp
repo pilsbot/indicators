@@ -42,10 +42,10 @@ public:
     void clear();
     void blinkInfo(const Color color, const bool reverse = false);
 
-    static constexpr uint8_t
+    static constexpr uint16_t
     getDesiredTicksPerSecond()
     {
-        return ticks_per_indication * 15 / 8;
+        return ticks_per_indication * 2;
     }
 
 

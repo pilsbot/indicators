@@ -32,12 +32,12 @@ struct Headlight : public Command
 
 struct IndicatorLeft : public Command
 {
-    IndicatorLeft(bool activate) : Command(Type::indicator, activate ? 10 : 00){};
+    IndicatorLeft(bool activate) : Command(Type::indicator, activate ? 0b11 : 0b10){};
+};
 
-    uint8_t getIntensity()
-    {
-        return value;
-    }
+struct IndicatorRight : public Command
+{
+    IndicatorRight(bool activate) : Command(Type::indicator, activate ? 0b01 : 0b00){};
 };
 
 }
