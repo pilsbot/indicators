@@ -1,4 +1,5 @@
 #pragma once
+#include "types.h"
 #include <stddef.h>
 
 struct __attribute__((packed)) Command
@@ -22,7 +23,7 @@ namespace cmd
 // TODO: finish this? Lot of beautiful overhead for such a simple protocol
 struct Headlight : public Command
 {
-    Headlight(uint8_t intensity) : Command(Type::headlight, intensity){};
+    Headlight(const ColorIntensity intensity) : Command(Type::headlight, intensity){};
 
     uint8_t getIntensity()
     {
@@ -32,12 +33,26 @@ struct Headlight : public Command
 
 struct IndicatorLeft : public Command
 {
-    IndicatorLeft(bool activate) : Command(Type::indicator, activate ? 0b11 : 0b10){};
+    // last bit determines indicator side
+    /**
+     * \param[in] on zero is off, everything else on with given intensity
+    */
+    IndicatorLeft(const ColorIntensity intensity) : Command(Type::indicator, intensity | 0b1){};
 };
 
 struct IndicatorRight : public Command
 {
-    IndicatorRight(bool activate) : Command(Type::indicator, activate ? 0b01 : 0b00){};
+    // last bit determines indicator side
+    /**
+     * \param[in] on zero is off, everything else on with given intensity
+    */
+    IndicatorRight(const ColorIntensity intensity) : Command(Type::indicator, intensity & ~0b1){};
+};
+
+struct Brake : public Command
+{
+    // last bit determines indicator side
+    Brake(const ColorIntensity intensity) : Command(Type::brake, intensity){};
 };
 
 }

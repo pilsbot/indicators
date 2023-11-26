@@ -6,11 +6,11 @@ class Lights
 {
     struct State
     {
-        bool indicator_left = false;
-        bool indicator_right = false;
-        bool brake = false;
-        bool headlight = false;
-        bool party = false;
+        ColorIntensity indicator_left = 0;
+        ColorIntensity indicator_right = 0;
+        ColorIntensity brake = 0;
+        ColorIntensity headlight = 0;
+        ColorIntensity party = 0;
     } state;
 
     enum class Direction
@@ -24,11 +24,14 @@ class Lights
         ColorIntensity r;
         ColorIntensity g;
         ColorIntensity b;
+
+        Color
+        operator* (const ColorIntensity x) const;
     };
 
     static constexpr Color headlight = {0xFF, 0xFF, 0xFF};
     static constexpr Color taillight = {0x30,    0,    0};
-    static constexpr Color indicator = {0xFF, 0xFF,    0};
+    static constexpr Color indicator = {0xFF, 0xA0,    0};
     static constexpr Color brake     = {0xFF,    0,    0};
     static constexpr Color party     = {0xAA,    0, 0xBB};
     static constexpr Color off       = {   0,    0,    0};
@@ -48,12 +51,11 @@ public:
         return ticks_per_indication * 2;
     }
 
-
-    void setIndicatorLeft(bool val = true);
-    void setIndicatorRight(bool val = true);
-    void setBrake(bool val = true);
-    void setHeadlight(bool val = true);
-    void setParty(bool val = true);
+    void setIndicatorLeft(ColorIntensity val = 0xFF);
+    void setIndicatorRight(ColorIntensity val = 0xFF);
+    void setBrake(ColorIntensity val = 0xFF);
+    void setHeadlight(ColorIntensity val = 0xFF);
+    void setParty(ColorIntensity val = 0xFF);
 
     void update();
 private:

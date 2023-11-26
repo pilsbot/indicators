@@ -34,7 +34,7 @@ int main() {
     stdio_init_all();
 
     lights.init();
-    lights.setParty(true);
+    lights.setParty(0xFF);
     // printf("set party mode\n");
 
     multicore_launch_core1(lightsUpdateService);
@@ -52,10 +52,10 @@ int main() {
                     lights.setHeadlight(value);
                     break;
                 case Command::Type::indicator:
-                    if (command->value & 0b10)
-                        lights.setIndicatorLeft(value & 0b01);
+                    if (command->value & 0b1)
+                        lights.setIndicatorLeft(value & ~0b1);
                     else
-                        lights.setIndicatorRight(value & 0b01);
+                        lights.setIndicatorRight(value & ~0b1);
                     break;
                 case Command::Type::brake:
                     lights.setBrake(value);

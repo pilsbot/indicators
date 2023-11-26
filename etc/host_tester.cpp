@@ -19,6 +19,7 @@
 struct Parameter {
   std::string devicename;
   unsigned baud_rate;
+  ColorIntensity intensity;
 } params_;
 
 int serial_fd_ = -1;
@@ -70,7 +71,7 @@ void send_command(const Command& cmd)
     printf("could not write Command %d\n", cmd.type);
     return;
   }
-  printf("Probably successfully sent command %d\n", cmd.type);
+  printf("Probably successfully sent command %d - %d\n", cmd.type, cmd.value);
 }
 
 
@@ -79,6 +80,7 @@ int main(int argc, char** argv)
     // TODO: Make parameter
     params_.devicename = "/dev/ttyACM0";
     params_.baud_rate = 115200;
+    params_.intensity = (std::numeric_limits<ColorIntensity>::max() * 3) / 4;
 
     if(!open_serial_port()) {
     throw std::runtime_error("Could not open serial port " + params_.devicename);
@@ -90,19 +92,32 @@ int main(int argc, char** argv)
     Command cmd;
     while (true)
     {
-        cmd = cmd::IndicatorLeft(true);
+        cmd = cmd::IndicatorLeft(params_.intensity);
         send_command(cmd);
         sleep(2);
-        cmd = cmd::IndicatorLeft(false);
+        cmd = cmd::IndicatorLeft(0);
         send_command(cmd);
         sleep(1);
-        cmd = cmd::Headlight(0xFF);
+        cmd = cmd::Headlight(params_.intensity);
         send_command(cmd);
         sleep(1);
-        cmd = cmd::IndicatorLeft(true);
+        cmd = cmd::IndicatorLeft(params_.intensity);
         send_command(cmd);
         sleep(1);
-        cmd = cmd::Headlight(0x00);
+        cmd = cmd::IndicatorLeft(0);
+        send_command(cmd);
+        cmd = cmd::IndicatorRight(params_.intensity);
+        send_command(cmd);
+        sleep(1);
+        cmd = cmd::Brake(params_.intensity);
+        send_command(cmd);
+        sleep(1);
+        cmd = cmd::Brake(0);
+        send_command(cmd);
+        sleep(1);
+        cmd = cmd::IndicatorRight(0);
+        send_command(cmd);
+        cmd = cmd::Headlight(0);
         send_command(cmd);
         sleep(1);
     }
