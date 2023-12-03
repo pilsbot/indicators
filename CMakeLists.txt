@@ -1,65 +1,43 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.5)
+project(pilsbot_indicators)
 
-# initialize pico-sdk from submodule
-# note: this must happen before project()
-include(pico-sdk/pico_sdk_init.cmake)
+# Default to C99
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
 
-project(pilsbot_indicators_firmware)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 20)
+endif()
 
-# initialize the Raspberry Pi Pico SDK
-pico_sdk_init()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-# rest of your project
-file(GLOB indicator_LIB
-        "lib/*.h"
-        "lib/*.c"
-)
+# find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+# uncomment the following section in order to fill in
+# further dependencies manually.
+# find_package(<dependency> REQUIRED)
 
-file(GLOB indicator_SRC
-        "src/*.h"
-        "src/*.cpp"
-)
-
-file(GLOB indicator_PIOS
-        "lib/*.pio"
-        "src/*.pio"
-)
-add_executable(indicator
-        ${indicator_SRC}
-        ${indicator_LIB}
-)
-target_include_directories(indicator
-        PRIVATE "include"
-)
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # uncomment the line when a copyright and license is not present in all source files
+  #set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # uncomment the line when this package is not in a git repo
+  #set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
 
 
-# Add pico_stdlib library which aggregates commonly used features
-target_link_libraries(indicator
-        pico_stdlib
-)
+add_executable(pilsbot_indiator_bridge src/indicator_bridge_node.cpp)
+ament_target_dependencies(pilsbot_indiator_bridge rclcpp std_msgs)
 
-# enable USB serial output
-pico_enable_stdio_usb(indicator 1)
-pico_enable_stdio_uart(indicator 0)
+install(TARGETS
+  pilsbot_indiator_bridge
+  DESTINATION lib/${PROJECT_NAME})
 
-# compile pio file
-pico_generate_pio_header(indicator
-
-        ${indicator_PIOS}
-        OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/generated
-)
-# make hardware pio available for interpreting pio file
-target_link_libraries(indicator
-        hardware_pio
-        hardware_dma
-        hardware_irq
-        pico_multicore
-        )
-
-pico_set_program_name(indicator "Pilsbot Indicators")
-pico_set_program_version(indicator "0.1")
-
-# create map/bin/hex/uf2 file in addition to ELF.
-pico_add_extra_outputs(indicator)
+ament_package()
