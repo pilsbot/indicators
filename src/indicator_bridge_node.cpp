@@ -165,7 +165,7 @@ public:
         if (!bridge_->open_serial_port())
         {
             RCLCPP_ERROR(this->get_logger(), "Could not open port %s at %d baud",
-                params.devicename, params.baud_rate);
+                params.devicename.c_str(), params.baud_rate);
             throw std::runtime_error("Could not open port " + params.devicename);
         }
 
