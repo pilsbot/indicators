@@ -55,4 +55,8 @@ struct Brake : public Command
     Brake(const ColorIntensity intensity) : Command(Type::brake, intensity){};
 };
 
+struct Party : public Command
+{
+    Party(const ColorIntensity intensity) : Command(Type::party, intensity){};
+};
 }
