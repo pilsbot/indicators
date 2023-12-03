@@ -17,9 +17,8 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+# find_package(pilsbot_driver_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -32,13 +31,25 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+include_directories(include)
 
 add_executable(pilsbot_indiator_bridge src/indicator_bridge_node.cpp)
-ament_target_dependencies(pilsbot_indiator_bridge rclcpp std_msgs)
-include_directories(include)
+
+ament_target_dependencies(pilsbot_indiator_bridge
+    rclcpp
+    std_msgs
+)
+
+add_executable(pilsbot_stvo_translation src/stvo_translator.cpp)
+ament_target_dependencies(pilsbot_stvo_translation
+    rclcpp
+    std_msgs
+    ackermann_msgs
+)
 
 install(TARGETS
   pilsbot_indiator_bridge
+  pilsbot_stvo_translation
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
