@@ -49,10 +49,20 @@ void Lights::blinkInfo(const Color color, const bool reverse)
 
 void Lights::setIndicatorLeft(ColorIntensity val)
 {
-    tick = 0; state.indicator_left = val;
+    if (state.indicator_left == 0 && val != state.indicator_left)
+    {
+        // transition from "off" to "something on"
+        tick = 0;
+    }
+    state.indicator_left = val;
 };
 void Lights::setIndicatorRight(ColorIntensity val)
 {
+    if (state.indicator_right == 0 && val != state.indicator_right)
+    {
+        // transition from "off" to "something on"
+        tick = 0;
+    }
     tick = 0; state.indicator_right = val;
 };
 void Lights::setBrake(ColorIntensity val)

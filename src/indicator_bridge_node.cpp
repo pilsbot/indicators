@@ -7,6 +7,7 @@
 #include "std_msgs/msg/byte.hpp"
 
 #include "../rp2040_firmware/include/protocol.hpp"
+#include <pilsbot_indicators/topics.hpp>
 
 #include <fcntl.h>
 #include <termios.h>
@@ -15,45 +16,7 @@
 #include <arpa/inet.h>  //ntoh
 
 using namespace std::chrono_literals;
-
-// TODO: Scoping?
-enum class Topic
-{
-    indicatorLeft,
-    indicatorRight,
-    brake,
-    headlight,
-    party,
-};
-
-// ugly with that 5
-static constexpr std::array<Topic, 5> topics {
-    Topic::indicatorLeft,
-    Topic::indicatorRight,
-    Topic::brake,
-    Topic::headlight,
-    Topic::party,
-};
-
-constexpr const char*
-getTopicName(const Topic& topic)
-{
-    switch (topic)
-    {
-        case Topic::indicatorLeft:
-            return "lighting/indicator/left";
-        case Topic::indicatorRight:
-            return "lighting/indicator/right";
-        case Topic::brake:
-            return "lighting/brake";
-        case Topic::headlight:
-            return "lighting/headlight";
-        case Topic::party:
-            return "lighting/party";
-        default:
-            return "lighting/invalid_shit_happend_AUTCH";
-    }
-}
+using namespace indicators;
 
 class IndicatorBridge
 {
@@ -64,7 +27,11 @@ public:
     };
 
     IndicatorBridge(const Parameter& param) :
-        serial_fd_(-1), stop_(false), params_(param){};
+        serial_fd_(-1), params_(param),
+        remote_state({0}), remote_state_was_initialized({false})
+    {
+
+    };
 
     void
     setParameter(const Parameter& param)
@@ -138,37 +105,46 @@ public:
     bool
     sendCommand(const Topic& topic, ColorIntensity value)
     {
-        Command cmd;
-        switch (topic)
+        const auto& offset = static_cast<std::underlying_type_t<Topic>>(topic);
+        bool& was_initialized = remote_state_was_initialized[offset];
+        auto& previous_value = remote_state[offset];
+
+        if (!was_initialized || value != previous_value)
         {
-            case Topic::indicatorLeft:
-                cmd = cmd::IndicatorLeft(value);
-                break;
-            case Topic::indicatorRight:
-                cmd = cmd::IndicatorRight(value);
-                break;
-            case Topic::brake:
-                cmd = cmd::Brake(value);
-                break;
-            case Topic::headlight:
-                cmd = cmd::Headlight(value);
-                break;
-            case Topic::party:
-                cmd = cmd::Party(value);
-                break;
-            default:
-                return false;
+            Command cmd;
+            switch (topic)
+            {
+                case Topic::indicatorLeft:
+                    cmd = cmd::IndicatorLeft(value);
+                    break;
+                case Topic::indicatorRight:
+                    cmd = cmd::IndicatorRight(value);
+                    break;
+                case Topic::brake:
+                    cmd = cmd::Brake(value);
+                    break;
+                case Topic::headlight:
+                    cmd = cmd::Headlight(value);
+                    break;
+                case Topic::party:
+                    cmd = cmd::Party(value);
+                    break;
+                default:
+                    return false;
+            }
+            was_initialized = true;
+            previous_value = value;
+            return ::write(serial_fd_, &cmd, sizeof(decltype(cmd))) ==  sizeof(decltype(cmd));
         }
-    if(::write(serial_fd_, &cmd, sizeof(decltype(cmd))) < 0){
-        return false;
-    }
-    return true;
+        // already sent this value
+        return true;
     }
 
 private:
     int serial_fd_;
-    std::atomic_bool stop_;
     Parameter params_;
+    std::array<ColorIntensity, indicators::topics.size()> remote_state;
+    std::array<bool, indicators::topics.size()> remote_state_was_initialized;
 };
 
 class IndicatorBridgeNode : public rclcpp::Node
@@ -223,7 +199,6 @@ public:
 private:
     void topic_callback(const Topic type, const std_msgs::msg::Byte::SharedPtr msg) const
     {
-        RCLCPP_INFO(this->get_logger(), "I heard: %s, '%02X'", getTopicName(type), msg->data);
         bridge_->sendCommand(type, msg->data);
     }
 

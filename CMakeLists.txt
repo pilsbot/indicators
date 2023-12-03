@@ -35,6 +35,7 @@ endif()
 
 add_executable(pilsbot_indiator_bridge src/indicator_bridge_node.cpp)
 ament_target_dependencies(pilsbot_indiator_bridge rclcpp std_msgs)
+include_directories(include)
 
 install(TARGETS
   pilsbot_indiator_bridge
