@@ -21,9 +21,12 @@ class AckermannToLightingNode : public rclcpp::Node
         bool hazard_when_backing_up;
         double backwards_hazard_m_s;
 
+        bool tagfahrlicht;
+
         uint8_t brake_intensity;
         uint8_t indicator_intensity;
-
+        uint8_t tagfahrlicht_intensity;
+        uint8_t headlights_intensity;
 
     } param_;
 
@@ -37,12 +40,28 @@ class AckermannToLightingNode : public rclcpp::Node
         this->declare_parameter<std::string>("prefix_lighting", "");
 
         this->declare_parameter<double>("turning_threshold_rad", .31415);
+        this->declare_parameter<bool>("hazard_when_backing_up", true);
         this->declare_parameter<double>("backwards_hazard_m_s", .5);
+
+        this->declare_parameter<bool>("tagfahrlicht", true);
+
+        this->declare_parameter<uint8_t>("brake_intensity", 0xF0);
+        this->declare_parameter<uint8_t>("indicator_intensity", 0xB0);
+        this->declare_parameter<uint8_t>("tagfahrlicht_intensity", 0x80);
+        this->declare_parameter<uint8_t>("headlights_intensity", 0xA0);
 
         param_.ackermann_topic_from = this->get_parameter("ackermann_topic_from").as_string();
         param_.prefix_lighting = this->get_parameter("prefix_lighting").as_string();
-        param_.limit_publish_rate_hz = this->get_parameter("limit_publish_rate_hz").as_double();
+
         param_.turning_threshold_rad = this->get_parameter("turning_threshold_rad").as_double();
+        param_.hazard_when_backing_up = this->get_parameter("hazard_when_backing_up").as_bool();
+        param_.backwards_hazard_m_s = this->get_parameter("backwards_hazard_m_s").as_double();
+        param_.tagfahrlicht = this->get_parameter("tagfahrlicht").as_bool();
+
+        param_.brake_intensity = this->get_parameter("brake_intensity").as_int();
+        param_.indicator_intensity = this->get_parameter("indicator_intensity").as_int();
+        param_.tagfahrlicht_intensity = this->get_parameter("tagfahrlicht_intensity").as_int();
+        param_.headlights_intensity = this->get_parameter("headlights_intensity").as_int();
 
         lightingPublishers_.reserve(indicators::topics.size());
         for (const auto& topic : indicators::topics)
@@ -53,6 +72,9 @@ class AckermannToLightingNode : public rclcpp::Node
             lightingPublishers_[offset] = this->create_publisher<std_msgs::msg::Byte>(
                     param_.prefix_lighting + indicators::getTopicName(topic), rclcpp::SensorDataQoS());
         }
+
+        // Initial publish to default values
+        topic_callback(std::make_shared<ackermann_msgs::msg::AckermannDriveStamped>(last_msg_));
 
         RCLCPP_INFO(this->get_logger(),
                 "setting up listener on %s", param_.ackermann_topic_from.c_str());
@@ -70,12 +92,12 @@ class AckermannToLightingNode : public rclcpp::Node
         std::array<uint8_t, indicators::topics.size()> new_state = last_state_;
 
         // brakes
-        if (msg->drive.speed < last_msg_.drive.speed || msg->drive.speed == 0)
+        if (std::abs(msg->drive.speed) < std::abs(last_msg_.drive.speed) || msg->drive.speed == 0)
         {
             // TODO: Instead of last_msg_, compare against actual odometry
             // RCLCPP_INFO(this->get_logger(), "brake light on");
             // TODO: Intensity in config
-            new_state[getOffsetFromTopic(indicators::Topic::brake)] = 0xF0;
+            new_state[getOffsetFromTopic(indicators::Topic::brake)] = param_.brake_intensity;
         }
         else
         {
@@ -90,7 +112,7 @@ class AckermannToLightingNode : public rclcpp::Node
             (warnblink_on_backwards && msg->drive.speed < -0.1))
         {
             // RCLCPP_INFO(this->get_logger(), "blink right");
-            new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = 0xC0;
+            new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = param_.indicator_intensity;
         }
         else
         {
@@ -101,14 +123,21 @@ class AckermannToLightingNode : public rclcpp::Node
             (warnblink_on_backwards && msg->drive.speed < -0.1))
         {
             // RCLCPP_INFO(this->get_logger(), "blink left");
-            new_state[getOffsetFromTopic(indicators::Topic::indicatorLeft)] = 0xC0;
+            new_state[getOffsetFromTopic(indicators::Topic::indicatorLeft)] = param_.indicator_intensity;
         }
         else
         {
             new_state[getOffsetFromTopic(indicators::Topic::indicatorLeft)] = 0x00;
         }
 
-        // TODO: Headlight when dark? Aufblenden?
+        if (param_.tagfahrlicht)
+        {
+            new_state[getOffsetFromTopic(indicators::Topic::headlight)] = param_.tagfahrlicht_intensity;
+        }
+        if (false ) // Headlight when dark? Und assi BMW Aufblenden?
+        {
+            new_state[getOffsetFromTopic(indicators::Topic::headlight)] = param_.headlights_intensity;
+        }
 
         // Apply changes
         for (const auto& topic : indicators::topics)
