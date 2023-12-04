@@ -191,7 +191,7 @@ public:
                 std::bind(&IndicatorBridgeNode::topic_callback, this, topic, std::placeholders::_1);
             subscriptions_.emplace_back(
                 this->create_subscription<std_msgs::msg::Byte>(
-                    getTopicName(topic), 10, fcn));
+                    getTopicName(topic), rclcpp::SensorDataQoS(), fcn));
 
         }
     }
@@ -199,6 +199,8 @@ public:
 private:
     void topic_callback(const Topic type, const std_msgs::msg::Byte::SharedPtr msg) const
     {
+        // RCLCPP_INFO(this->get_logger(),
+        //         "got command at %s", getTopicName(type));
         bridge_->sendCommand(type, msg->data);
     }
 
