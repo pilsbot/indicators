@@ -52,4 +52,14 @@ install(TARGETS
   pilsbot_stvo_translation
   DESTINATION lib/${PROJECT_NAME})
 
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}
+)
+install(DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+
 ament_package()

@@ -23,13 +23,11 @@ class AckermannToLightingNode : public rclcpp::Node
 
     using Time = std::chrono::time_point<std::chrono::system_clock>;
 
-    static constexpr unsigned qos = 10; // TODO: What 10? Chickens?
-
   public:
     AckermannToLightingNode()
     : Node("pilsbot_stvo_converter"), last_publish_(Time::min())
     {
-        this->declare_parameter<std::string>("ackermann_topic_from", "/pilsbot_velocity_controller/cmd_vel");
+        this->declare_parameter<std::string>("ackermann_topic_from", "pilsbot_velocity_controller/cmd_vel");
         this->declare_parameter<std::string>("prefix_lighting", "");
         this->declare_parameter<double>("limit_publish_rate_hz", 5);
         this->declare_parameter<double>("turning_threshold_rad", .31415);
@@ -46,13 +44,13 @@ class AckermannToLightingNode : public rclcpp::Node
                 "setting up publisher on " + param_.prefix_lighting + indicators::getTopicName(topic));
             lightingPublishers_.emplace_back(
                 this->create_publisher<std_msgs::msg::Byte>(
-                    param_.prefix_lighting + indicators::getTopicName(topic), qos));
+                    param_.prefix_lighting + indicators::getTopicName(topic), rclcpp::SensorDataQoS()));
         }
 
         RCLCPP_INFO(this->get_logger(),
                 "setting up listener on %s", param_.ackermann_topic_from.c_str());
-        this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
-                    param_.ackermann_topic_from, qos, std::bind(
+        steeringInputSubscription_ = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
+                    param_.ackermann_topic_from, rclcpp::SensorDataQoS(), std::bind(
                       &AckermannToLightingNode::topic_callback, this, std::placeholders::_1));
     }
 
@@ -60,28 +58,27 @@ class AckermannToLightingNode : public rclcpp::Node
     void topic_callback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
     {
         // TODO
-        std::cout << msg->drive.speed << " " << msg->drive.steering_angle << std::endl;
+        RCLCPP_INFO(this->get_logger(), "%f %f", msg->drive.speed, msg->drive.steering_angle);
 
         if (msg->drive.speed < last_msg_.drive.speed || msg->drive.speed == 0)
         {
-            std::cout << "Would light brakes" << std::endl;
+            RCLCPP_INFO(this->get_logger(), "Would light brakes");
         }
 
         if (msg->drive.steering_angle > param_.turning_threshold_rad)
         {
-            std::cout << "Would blink left" << std::endl;
+            RCLCPP_INFO(this->get_logger(), "Would blink left");
         }
         else if (msg->drive.steering_angle < -param_.turning_threshold_rad)
         {
-            std::cout << "would blink right" << std::endl;
+            RCLCPP_INFO(this->get_logger(), "would blink right");
         }
 
         last_msg_ = *msg;
     }
 
     std::vector<rclcpp::Publisher<std_msgs::msg::Byte>::SharedPtr> lightingPublishers_;
-    rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr subscription_;
-
+    rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr steeringInputSubscription_;
 
     ackermann_msgs::msg::AckermannDriveStamped last_msg_;
     Time last_publish_; // todo: Use, and also with timeout to send ignored msg

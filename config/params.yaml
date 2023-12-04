@@ -1,0 +1,11 @@
+pilsbot_indiator_bridge:
+  ros__parameters:
+    serial_port: "/dev/ttyACM0"
+    baud_rate: 115200
+
+pilsbot_stvo_translation:
+  ros__parameters:
+    ackermann_topic_from: "pilsbot_velocity_controller/cmd_vel"
+    prefix_lighting: ""
+    limit_publish_rate_hz: 5.
+    turning_threshold_rad: .31415
