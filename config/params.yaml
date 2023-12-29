@@ -1,6 +1,6 @@
 pilsbot_indiator_bridge:
   ros__parameters:
-    serial_port: "/dev/ttyACM0"
+    serial_port: "/dev/ttyLighting1"
     baud_rate: 115200
 
 pilsbot_stvo_translation:
