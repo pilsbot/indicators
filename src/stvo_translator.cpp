@@ -69,6 +69,8 @@ class AckermannToLightingNode : public rclcpp::Node
             const auto& offset = getOffsetFromTopic(topic);
             RCLCPP_INFO(this->get_logger(),
                 "setting up publisher on " + param_.prefix_lighting + indicators::getTopicName(topic));
+            // the following might throw because something something reverse ion thrusters
+            // https://github.com/ros2/rcl/issues/1118
             lightingPublishers_[offset] = this->create_publisher<std_msgs::msg::Byte>(
                     param_.prefix_lighting + indicators::getTopicName(topic), rclcpp::SensorDataQoS());
         }

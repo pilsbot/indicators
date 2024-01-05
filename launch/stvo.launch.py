@@ -17,15 +17,6 @@ def generate_launch_description():
         'params.yaml'
         )
 
-    node=Node(
-        package = 'pilsbot_indicators',
-        name = 'pilsbot_stvo_translation',
-        executable = 'pilsbot_stvo_translation',
-        parameters = [config]
-        #parameters = [{"key": "value"}]
-    )
-    ld.add_action(node)
-
     included_bridge_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([ThisLaunchFileDir(), '/bridge.launch.py'])
         # launch_arguments={
@@ -33,5 +24,16 @@ def generate_launch_description():
         # }.items()
     )
     ld.add_action(included_bridge_launch)
+
+    node=Node(
+        package = 'pilsbot_indicators',
+        name = 'pilsbot_stvo_translation',
+        executable = 'pilsbot_stvo_translation',
+        parameters = [config],
+        respawn=True, # might throw because something something reverse ion thrusters https://github.com/ros2/rcl/issues/1118
+        respawn_delay=4,
+        #parameters = [{"key": "value"}]
+    )
+    ld.add_action(node)
 
     return ld
