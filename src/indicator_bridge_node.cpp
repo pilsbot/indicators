@@ -41,6 +41,18 @@ public:
 
     ~IndicatorBridge()
     {
+        if (serial_fd_ >= 0)
+        {
+            // let's try and knips out the lights
+            // (except for party)
+            for (const auto& topic : topics)
+            {
+                if (topic == Topic::party)
+                    continue;
+
+                sendCommand(topic, 0);
+            }
+        }
         stop();
     }
 
