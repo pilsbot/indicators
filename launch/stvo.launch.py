@@ -9,6 +9,10 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 import os
 
+
+from launch.actions import TimerAction
+
+
 def generate_launch_description():
     ld = LaunchDescription()
     config = os.path.join(
@@ -25,7 +29,7 @@ def generate_launch_description():
     )
     ld.add_action(included_bridge_launch)
 
-    node=Node(
+    stvo_translator=Node(
         package = 'pilsbot_indicators',
         name = 'pilsbot_stvo_translation',
         executable = 'pilsbot_stvo_translation',
@@ -34,6 +38,9 @@ def generate_launch_description():
         respawn_delay=4,
         #parameters = [{"key": "value"}]
     )
-    ld.add_action(node)
 
+    # launch it delayed, because it seems that it needs the existing topics
+    timed_stvo_translator = TimerAction(period=8.0, actions=[stvo_translator])
+
+    ld.add_action(timed_stvo_translator)
     return ld
