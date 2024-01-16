@@ -78,7 +78,7 @@ void send_command(const Command& cmd)
 int main(int argc, char** argv)
 {
     // TODO: Make parameter
-    params_.devicename = "/dev/ttyLighting1";
+    params_.devicename = "/dev/ttyLighting";
     params_.baud_rate = 115200;
     params_.intensity = (std::numeric_limits<ColorIntensity>::max() * 3) / 4;
 
