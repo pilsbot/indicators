@@ -15,6 +15,7 @@
 #include <arpa/inet.h>  //ntoh
 
 #include <chrono>
+#include <string>
 
 struct Parameter {
   std::string devicename;
@@ -83,11 +84,28 @@ int main(int argc, char** argv)
     params_.intensity = (std::numeric_limits<ColorIntensity>::max() * 3) / 4;
 
     if(!open_serial_port()) {
-    throw std::runtime_error("Could not open serial port " + params_.devicename);
+        throw std::runtime_error("Could not open serial port " + params_.devicename);
     }
 
     set_serial_properties();
     printf("Opened device %s with baudrate %d\n", params_.devicename.c_str(),params_.baud_rate);
+
+    if (argc > 1)
+    {
+        if (std::string(argv[1]).find("warnblinker") != std::string::npos)
+        {
+            send_command(cmd::IndicatorLeft(params_.intensity));
+            send_command(cmd::IndicatorRight(params_.intensity));
+            exit(0);
+        }
+        else if(std::string(argv[1]).find("aus") != std::string::npos)
+        {
+            send_command(cmd::IndicatorLeft(0));
+            send_command(cmd::IndicatorRight(0));
+            send_command(cmd::Headlight(0));
+            exit(0);
+        }
+    }
 
     Command cmd;
     while (true)
