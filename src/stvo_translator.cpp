@@ -20,6 +20,7 @@ class AckermannToLightingNode : public rclcpp::Node
         double turning_threshold_rad;
         bool hazard_when_backing_up;
         double backwards_hazard_m_s;
+        double brakelight_diff_m_s;
 
         bool tagfahrlicht;
 
@@ -42,6 +43,7 @@ class AckermannToLightingNode : public rclcpp::Node
         this->declare_parameter<double>("turning_threshold_rad", .31415);
         this->declare_parameter<bool>("hazard_when_backing_up", true);
         this->declare_parameter<double>("backwards_hazard_m_s", .5);
+        this->declare_parameter<double>("brakelight_diff_m_s", .5);
 
         this->declare_parameter<bool>("tagfahrlicht", true);
 
@@ -56,6 +58,7 @@ class AckermannToLightingNode : public rclcpp::Node
         param_.turning_threshold_rad = this->get_parameter("turning_threshold_rad").as_double();
         param_.hazard_when_backing_up = this->get_parameter("hazard_when_backing_up").as_bool();
         param_.backwards_hazard_m_s = this->get_parameter("backwards_hazard_m_s").as_double();
+        param_.brakelight_diff_m_s = this->get_parameter("brakelight_diff_m_s").as_double();
         param_.tagfahrlicht = this->get_parameter("tagfahrlicht").as_bool();
 
         param_.brake_intensity = this->get_parameter("brake_intensity").as_int();
@@ -94,7 +97,8 @@ class AckermannToLightingNode : public rclcpp::Node
         std::array<uint8_t, indicators::topics.size()> new_state = last_state_;
 
         // brakes
-        if (std::abs(msg->drive.speed) < std::abs(last_msg_.drive.speed) || msg->drive.speed == 0)
+        if ((std::abs(msg->drive.speed) + param_.brakelight_diff_m_s) < std::abs(last_msg_.drive.speed)
+            || msg->drive.speed == 0)
         {
             // TODO: Instead of last_msg_, compare against actual odometry
             // RCLCPP_INFO(this->get_logger(), "brake light on");
@@ -108,10 +112,9 @@ class AckermannToLightingNode : public rclcpp::Node
         }
 
 
-        // turning signals
-        const bool warnblink_on_backwards = true;   // TODO: Make Parameter
+        // turning signal right
         if (msg->drive.steering_angle > param_.turning_threshold_rad ||
-            (warnblink_on_backwards && msg->drive.speed < -0.1))
+            (param_.hazard_when_backing_up && msg->drive.speed < -0.1))
         {
             // RCLCPP_INFO(this->get_logger(), "blink right");
             new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = param_.indicator_intensity;
@@ -120,9 +123,9 @@ class AckermannToLightingNode : public rclcpp::Node
         {
             new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = 0x00;
         }
-
+        // turning signal left
         if (msg->drive.steering_angle < -param_.turning_threshold_rad ||
-            (warnblink_on_backwards && msg->drive.speed < -0.1))
+            (param_.hazard_when_backing_up && msg->drive.speed < -0.1))
         {
             // RCLCPP_INFO(this->get_logger(), "blink left");
             new_state[getOffsetFromTopic(indicators::Topic::indicatorLeft)] = param_.indicator_intensity;

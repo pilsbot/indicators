@@ -7,6 +7,7 @@ pilsbot_stvo_translation:
   ros__parameters:
     ackermann_topic_from: "pilsbot_velocity_controller/cmd_vel"
     prefix_lighting: ""
-    turning_threshold_rad: .31415
+    turning_threshold_rad: .21415
     tagfahrlicht: True
     tagfahrlicht_intensity: 0x60
+    brakelight_diff_m_s: 0.4  # turn on brake light if new command is x slower
