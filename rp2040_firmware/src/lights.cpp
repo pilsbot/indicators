@@ -23,7 +23,7 @@ void Lights::init()
 
 void Lights::clear()
 {
-    tick = 0;
+    mTick = 0;
     NEO_ClearAllPixel();
     NEO_TransferPixels();
 }
@@ -31,13 +31,13 @@ void Lights::clear()
 void Lights::blinkInfo(const Color color, const bool reverse)
 {
     if(reverse)
-        NEO_SetPixelRGB(0, front_left.len - (tick+1), color.r, color.g, color.b);
+        NEO_SetPixelRGB(0, front_left.len - (mTick+1), color.r, color.g, color.b);
     else
-        NEO_SetPixelRGB(0, tick, color.r, color.g, color.b);
+        NEO_SetPixelRGB(0, mTick, color.r, color.g, color.b);
 
-    if(++tick > front_left.len)
+    if(++mTick > front_left.len)
     {
-        tick = 0;
+        mTick = 0;
         for(uint8_t i = 0; i <= front_left.len; i++)
         {
             NEO_ClearPixel(0, i);
@@ -49,50 +49,54 @@ void Lights::blinkInfo(const Color color, const bool reverse)
 
 void Lights::setIndicatorLeft(ColorIntensity val)
 {
-    if (state.indicator_left == 0 && val != state.indicator_left)
+    if (mState.indicator_left == 0 && val != mState.indicator_left)
     {
         // transition from "off" to "something on"
-        tick = 0;
+        mTick = 0;
     }
-    state.indicator_left = val;
+    mState.indicator_left = val;
 };
 void Lights::setIndicatorRight(ColorIntensity val)
 {
-    if (state.indicator_right == 0 && val != state.indicator_right)
+    if (mState.indicator_right == 0 && val != mState.indicator_right)
     {
         // transition from "off" to "something on"
-        tick = 0;
+        mTick = 0;
     }
-    tick = 0; state.indicator_right = val;
+    mTick = 0; mState.indicator_right = val;
 };
 void Lights::setBrake(ColorIntensity val)
 {
-    state.brake = val;
+    mState.brake = val;
 };
 void Lights::setHeadlight(ColorIntensity val)
 {
-    state.headlight = val;
+    mState.headlight = val;
 };
 void Lights::setParty(ColorIntensity val)
 {
-    state.party = val;
+    mState.party = val;
 };
+void Lights::setPartyDirection(const Direction& dir)
+{
+    mState.party_direction = dir;
+}
 
 void Lights::update()
 {
-    bool filling = (tick & ticks_per_indication);
+    bool filling = (mTick & ticks_per_indication);
     //indicators
     if(filling)
     {
-        setColorSide(front_left , indicator * state.indicator_left,
-                     Direction::reverse,  (tick << 1) & 0b111111);
-        setColorSide(rear_left  , indicator * state.indicator_left,
-                     Direction::forward,  (tick << 1) & 0b111111);
+        setColorSide(front_left , indicator * mState.indicator_left,
+                     Direction::reverse,  (mTick << 1) & 0b111111);
+        setColorSide(rear_left  , indicator * mState.indicator_left,
+                     Direction::forward,  (mTick << 1) & 0b111111);
 
-        setColorSide(front_right, indicator * state.indicator_right,
-                     Direction::forward, (tick << 1) & 0b111111);
-        setColorSide(rear_right , indicator * state.indicator_right,
-                     Direction::reverse, (tick << 1) & 0b111111);
+        setColorSide(front_right, indicator * mState.indicator_right,
+                     Direction::forward, (mTick << 1) & 0b111111);
+        setColorSide(rear_right , indicator * mState.indicator_right,
+                     Direction::reverse, (mTick << 1) & 0b111111);
     }
     else
     {   //pause between fills or "not indicating"
@@ -104,40 +108,46 @@ void Lights::update()
     }
 
 
-    if(state.headlight)
+    if(mState.headlight)
     {   //For headlights, turning signal has priority
-        if(!state.indicator_left)
+        if(!mState.indicator_left)
         {
-            setColorSide(front_left, headlight * state.headlight,
+            setColorSide(front_left, headlight * mState.headlight,
                          Direction::reverse, front_left.len/2);
-            setColorSide(rear_left,  taillight * state.headlight,
+            setColorSide(rear_left,  taillight * mState.headlight,
                          Direction::forward, rear_left.len/2);
         }
-        if(!state.indicator_right)
+        if(!mState.indicator_right)
         {
-            setColorSide(front_right, headlight * state.headlight,
+            setColorSide(front_right, headlight * mState.headlight,
                          Direction::forward, front_right.len/2);
-            setColorSide(rear_right,  taillight * state.headlight,
+            setColorSide(rear_right,  taillight * mState.headlight,
                          Direction::reverse, rear_right.len/2);
         }
     }
 
-    if(state.brake)
+    if(mState.brake)
     {   //brake has prio
-        setColorSide(rear_right, brake * state.brake,
+        setColorSide(rear_right, brake * mState.brake,
                      Direction::reverse, rear_right.len/2, false);
-        setColorSide(rear_left , brake * state.brake,
+        setColorSide(rear_left , brake * mState.brake,
                      Direction::forward, rear_left.len/2, false);
     }
 
-    if(state.party)
+    if(mState.party)
     {
         //Wohoo, party!
-        const auto scaled_party = party * state.party;
-        NEO_SetPixelRGB(0, tick % num_pixels, scaled_party.r, scaled_party.g, scaled_party.b);
+        const auto scaled_party = party * mState.party;
+        auto pixel = mTick % num_pixels;
+        if (mState.party_direction == Direction::reverse)
+        {
+            // effectively reverse
+            pixel = num_pixels - pixel;
+        }
+        NEO_SetPixelRGB(0, pixel, scaled_party.r, scaled_party.g, scaled_party.b);
     }
 
-    tick++;
+    mTick++;
 
     NEO_TransferPixels();
 }

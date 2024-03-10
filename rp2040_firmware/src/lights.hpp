@@ -4,6 +4,13 @@
 
 class Lights
 {
+public:
+    enum class Direction
+    {
+        forward,
+        reverse
+    };
+
     struct State
     {
         ColorIntensity indicator_left = 0;
@@ -11,12 +18,7 @@ class Lights
         ColorIntensity brake = 0;
         ColorIntensity headlight = 0;
         ColorIntensity party = 0;
-    } state;
-
-    enum class Direction
-    {
-        forward,
-        reverse
+        Direction party_direction = Direction::forward;
     };
 
     struct Color
@@ -28,18 +30,6 @@ class Lights
         Color
         operator* (const ColorIntensity x) const;
     };
-
-    static constexpr Color headlight = {0xFF, 0xFF, 0xFF};
-    static constexpr Color taillight = {0x30,    0,    0};
-    static constexpr Color indicator = {0xFF, 0xA0,    0};
-    static constexpr Color brake     = {0xFF,    0,    0};
-    static constexpr Color party     = {0xAA,    0, 0xBB};
-    static constexpr Color off       = {   0,    0,    0};
-
-    static constexpr uint8_t ticks_per_indication = 0b0100000;
-
-    uint8_t tick = 0;
-public:
 
     void init();
     void clear();
@@ -56,8 +46,21 @@ public:
     void setBrake(ColorIntensity val = 0xFF);
     void setHeadlight(ColorIntensity val = 0xFF);
     void setParty(ColorIntensity val = 0xFF);
+    void setPartyDirection(const Direction& dir);
 
     void update();
 private:
+    static constexpr Color headlight = {0xFF, 0xFF, 0xFF};
+    static constexpr Color taillight = {0x30,    0,    0};
+    static constexpr Color indicator = {0xFF, 0xA0,    0};
+    static constexpr Color brake     = {0xFF,    0,    0};
+    static constexpr Color party     = {0xAA,    0, 0xBB};
+    static constexpr Color off       = {   0,    0,    0};
+
+    static constexpr uint8_t ticks_per_indication = 0b0100000;
+
+    State mState;
+    uint8_t mTick = 0;
+
     void setColorSide(const LightPos& pos, const Color color, const Direction dir, const uint8_t num = 0xFF, bool overwrite_rest = false);
 };
