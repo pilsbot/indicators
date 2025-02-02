@@ -23,8 +23,8 @@ class AckermannToLightingNode : public rclcpp::Node
         double turning_threshold_rad;
         bool hazard_when_backing_up;
         double backwards_hazard_m_s;
-        double min_velocity_diff_for_brake_m_s;
         std::chrono::duration<double> min_brake_time;
+        double brakelight_diff_m_s;
 
         bool tagfahrlicht;
 
@@ -48,7 +48,7 @@ public:
         this->declare_parameter<bool>("hazard_when_backing_up", true);
         this->declare_parameter<double>("backwards_hazard_m_s", .5);
         this->declare_parameter<double>("min_brake_time_s", 1.);
-        this->declare_parameter<double>("min_velocity_diff_for_brake_m_s", .25);
+        this->declare_parameter<double>("brakelight_diff_m_s", .5);
 
         this->declare_parameter<bool>("tagfahrlicht", true);
 
@@ -63,8 +63,8 @@ public:
         param_.turning_threshold_rad = this->get_parameter("turning_threshold_rad").as_double();
         param_.hazard_when_backing_up = this->get_parameter("hazard_when_backing_up").as_bool();
         param_.backwards_hazard_m_s = this->get_parameter("backwards_hazard_m_s").as_double();
-        param_.min_velocity_diff_for_brake_m_s = this->get_parameter("min_velocity_diff_for_brake_m_s").as_double();
         param_.min_brake_time = std::chrono::duration<double>{this->get_parameter("min_brake_time_s").as_double()};
+        param_.brakelight_diff_m_s = this->get_parameter("brakelight_diff_m_s").as_double();
         param_.tagfahrlicht = this->get_parameter("tagfahrlicht").as_bool();
 
         param_.brake_intensity = this->get_parameter("brake_intensity").as_int();
@@ -77,8 +77,6 @@ public:
             const auto& offset = getOffsetFromTopic(topic);
             RCLCPP_INFO(this->get_logger(),
                 "setting up publisher on " + param_.prefix_lighting + indicators::getTopicName(topic));
-            // the following might throw because something something reverse ion thrusters
-            // https://github.com/ros2/rcl/issues/1118
             lightingPublishers_[offset] = this->create_publisher<std_msgs::msg::Byte>(
                     param_.prefix_lighting + indicators::getTopicName(topic), rclcpp::SensorDataQoS());
         }
@@ -103,7 +101,7 @@ private:
 
         auto new_state = last_state_;
 
-        const bool brake_on = (param_.min_velocity_diff_for_brake_m_s + std::abs(msg->drive.speed)) < std::abs(last_msg_.drive.speed)
+        const bool brake_on = (param_.brakelight_diff_m_s + std::abs(msg->drive.speed)) < std::abs(last_msg_.drive.speed)
                                 || msg->drive.speed == 0;
 
         if (brake_on)
@@ -131,9 +129,9 @@ private:
         }
 
         // turning signals
-        const bool warnblink_on_backwards = true;   // TODO: Make Parameter
+
         if (msg->drive.steering_angle > param_.turning_threshold_rad ||
-            (warnblink_on_backwards && msg->drive.speed < -0.1))
+            (param_.hazard_when_backing_up && msg->drive.speed < -0.1))
         {
             // RCLCPP_INFO(this->get_logger(), "blink right");
             new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = param_.indicator_intensity;
@@ -142,9 +140,9 @@ private:
         {
             new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = 0x00;
         }
-
+        // turning signal left
         if (msg->drive.steering_angle < -param_.turning_threshold_rad ||
-            (warnblink_on_backwards && msg->drive.speed < -0.1))
+            (param_.hazard_when_backing_up && msg->drive.speed < -0.1))
         {
             // RCLCPP_INFO(this->get_logger(), "blink left");
             new_state[getOffsetFromTopic(indicators::Topic::indicatorLeft)] = param_.indicator_intensity;

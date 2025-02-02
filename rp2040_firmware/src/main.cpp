@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <array>
 #include "pico/stdlib.h"
+#include <hardware/structs/usb.h> // of pico
 #include <protocol.hpp>
 #include <pico/multicore.h>
 #include <optional>
@@ -29,12 +30,19 @@ lightsUpdateService()
     }
 }
 
+bool
+isUSBHostConnected()
+{
+    return usb_hw->sie_status & USB_SIE_STATUS_CONNECTED_BITS;
+}
+
 int main() {
     setup_default_uart();
     stdio_init_all();
 
     lights.init();
     lights.setParty(0xFF);
+    lights.setPartyDirection(Lights::Direction::forward);
     // printf("set party mode\n");
 
     multicore_launch_core1(lightsUpdateService);
@@ -69,8 +77,10 @@ int main() {
                     break;
             }
         }
-        // lights.update();
-        // sleep_until(delayed_by_ms(vorher, 1000 / lights.getDesiredTicksPerSecond()));
+        lights.setPartyDirection(
+            isUSBHostConnected() ?
+                Lights::Direction::reverse : Lights::Direction::forward
+        );
     };
 
     return 0;
