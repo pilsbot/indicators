@@ -10,3 +10,5 @@ pilsbot_stvo_translation:
     turning_threshold_rad: .31415
     tagfahrlicht: True
     tagfahrlicht_intensity: 0x60
+    min_brake_time_s: .5
+    min_velocity_diff_for_brake_m_s: .05
