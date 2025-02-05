@@ -78,6 +78,7 @@ public:
         param_.tagfahrlicht_intensity = this->get_parameter("tagfahrlicht_intensity").as_int();
         param_.headlights_intensity = this->get_parameter("headlights_intensity").as_int();
 
+        lightingPublishers_.resize(indicators::topics.size());
         for (const auto& topic : indicators::topics)
         {
             const auto& offset = getOffsetFromTopic(topic);
