@@ -95,12 +95,10 @@ class AckermannToLightingNode : public rclcpp::Node
 
         // from teleop_acker_joy.cpp, make sure these are the same
         // TODO: Perhaps individual message?
-        // TODO: Make loop
-        const auto fun = std::bind(&AckermannToLightingNode::light_update, this, &param_.flash, std::placeholders::_1);
-        auto subs = this->create_subscription<std_msgs::msg::Bool>(
-                    param_.light_teleop_prefix + "flash",
-                    rclcpp::SensorDataQoS(), fun);
-        lightingInputSubscriptions_.push_back(subs);
+        addLightingSubscription(param_.tagfahrlicht, param_.light_teleop_prefix + "headlight");;
+        addLightingSubscription(param_.turn_left, param_.light_teleop_prefix + "turn_left");;
+        addLightingSubscription(param_.turn_right, param_.light_teleop_prefix + "turn_right");
+        addLightingSubscription(param_.flash, param_.light_teleop_prefix + "flash");
     }
 
   private:
@@ -175,16 +173,26 @@ class AckermannToLightingNode : public rclcpp::Node
         last_msg_ = *msg;
     }
 
-    void light_update(bool *field, const std_msgs::msg::Bool::SharedPtr msg)
-    {
-        *field = msg->data;
-    }
-
     static constexpr
     std::underlying_type_t<indicators::Topic>
     getOffsetFromTopic(const indicators::Topic& topic)
     {
         return static_cast<std::underlying_type_t<indicators::Topic>>(topic);
+    }
+
+    void addLightingSubscription(bool& which_field, std::string name)
+    {
+        RCLCPP_INFO(this->get_logger(),
+            "setting up listener on %s", name.c_str());
+        auto subs = this->create_subscription<std_msgs::msg::Bool>(
+                name,
+                rclcpp::SensorDataQoS(),
+                [&which_field](const std_msgs::msg::Bool::SharedPtr msg)
+                {
+                    which_field = msg->data;
+                }
+                );
+        lightingInputSubscriptions_.push_back(std::move(subs));
     }
 
     std::vector<rclcpp::Publisher<std_msgs::msg::Byte>::SharedPtr> lightingPublishers_;
