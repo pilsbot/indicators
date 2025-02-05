@@ -6,7 +6,8 @@ pilsbot_indiator_bridge:
 pilsbot_stvo_translation:
   ros__parameters:
     ackermann_topic_from: "pilsbot_velocity_controller/cmd_vel"
-    prefix_lighting: ""
+    light_teleop_prefix: "cmd/"
+    prefix_lighting_publish: ""
     turning_threshold_rad: .31415
     tagfahrlicht: True
     tagfahrlicht_intensity: 0x60
