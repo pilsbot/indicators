@@ -1,6 +1,7 @@
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/byte.hpp"
-#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/byte.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 
 #include <pilsbot_indicators/topics.hpp>
 
@@ -18,7 +19,8 @@ class AckermannToLightingNode : public rclcpp::Node
     struct Parameter
     {
         std::string ackermann_topic_from;
-        std::string prefix_lighting;
+        std::string light_teleop_prefix;
+        std::string prefix_lighting_publish;
 
         double turning_threshold_rad;
         bool hazard_when_backing_up;
@@ -26,7 +28,11 @@ class AckermannToLightingNode : public rclcpp::Node
         std::chrono::duration<double> min_brake_time;
         double brakelight_diff_m_s;
 
+        // these are (optional) requests coming in from teleop acker joy
         bool tagfahrlicht;
+        bool turn_left;
+        bool turn_right;
+        bool flash;
 
         uint8_t brake_intensity;
         uint8_t indicator_intensity;
@@ -40,9 +46,8 @@ public:
     : Node("pilsbot_stvo_converter"), last_state_({0})
     {
         this->declare_parameter<std::string>("ackermann_topic_from", "pilsbot_velocity_controller/cmd_vel");
-        // TODO: Get negative acceleration from Sackermann
-
-        this->declare_parameter<std::string>("prefix_lighting", "");
+        this->declare_parameter<std::string>("light_teleop_prefix", "cmd/");
+        this->declare_parameter<std::string>("prefix_lighting_publish", "");
 
         this->declare_parameter<double>("turning_threshold_rad", .31415);
         this->declare_parameter<bool>("hazard_when_backing_up", true);
@@ -58,7 +63,8 @@ public:
         this->declare_parameter<uint8_t>("headlights_intensity", 0xA0);
 
         param_.ackermann_topic_from = this->get_parameter("ackermann_topic_from").as_string();
-        param_.prefix_lighting = this->get_parameter("prefix_lighting").as_string();
+        param_.light_teleop_prefix = this->get_parameter("light_teleop_prefix").as_string();
+        param_.prefix_lighting_publish = this->get_parameter("prefix_lighting_publish").as_string();
 
         param_.turning_threshold_rad = this->get_parameter("turning_threshold_rad").as_double();
         param_.hazard_when_backing_up = this->get_parameter("hazard_when_backing_up").as_bool();
@@ -76,26 +82,36 @@ public:
         {
             const auto& offset = getOffsetFromTopic(topic);
             RCLCPP_INFO(this->get_logger(),
-                "setting up publisher on " + param_.prefix_lighting + indicators::getTopicName(topic));
+                "setting up publisher on " + param_.prefix_lighting_publish + indicators::getTopicName(topic));
+            // the following might throw because something something reverse ion thrusters
+            // https://github.com/ros2/rcl/issues/1118
             lightingPublishers_[offset] = this->create_publisher<std_msgs::msg::Byte>(
-                    param_.prefix_lighting + indicators::getTopicName(topic), rclcpp::SensorDataQoS());
+                    param_.prefix_lighting_publish + indicators::getTopicName(topic), rclcpp::SensorDataQoS());
         }
 
         RCLCPP_INFO(this->get_logger(),
                 "Brake-time: " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(param_.min_brake_time).count()) + "ms");
 
         // Initial publish to default values
-        topic_callback(std::make_shared<ackermann_msgs::msg::AckermannDriveStamped>(last_msg_));
+        cmd_callback(std::make_shared<ackermann_msgs::msg::AckermannDriveStamped>(last_msg_));
 
         RCLCPP_INFO(this->get_logger(),
                 "setting up listener on %s", param_.ackermann_topic_from.c_str());
         steeringInputSubscription_ = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
                     param_.ackermann_topic_from, rclcpp::SensorDataQoS(), std::bind(
-                      &AckermannToLightingNode::topic_callback, this, std::placeholders::_1));
+                      &AckermannToLightingNode::cmd_callback, this, std::placeholders::_1));
+
+
+        // from teleop_acker_joy.cpp, make sure these are the same
+        // TODO: Perhaps individual message?
+        addLightingSubscription(param_.tagfahrlicht, param_.light_teleop_prefix + "headlight");;
+        addLightingSubscription(param_.turn_left, param_.light_teleop_prefix + "turn_left");;
+        addLightingSubscription(param_.turn_right, param_.light_teleop_prefix + "turn_right");
+        addLightingSubscription(param_.flash, param_.light_teleop_prefix + "flash");
     }
 
-private:
-    void topic_callback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
+  private:
+    void cmd_callback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
     {
         // RCLCPP_INFO(this->get_logger(), "%f %f", msg->drive.speed, msg->drive.steering_angle);
 
@@ -119,7 +135,8 @@ private:
         // brakes
         if (brake_on || brake_still_on)
         {
-            // RCLCPP_INFO(this->get_logger(), "brake light on because nowbrake: " + std::to_string(brake_on) + " and brake_Still_on: " + std::to_string(brake_still_on) );
+            // TODO: Instead of last_msg_, compare against actual odometry
+            // RCLCPP_INFO(this->get_logger(), "brake light on");
             new_state[getOffsetFromTopic(indicators::Topic::brake)] = param_.brake_intensity;
         }
         else
@@ -129,9 +146,9 @@ private:
         }
 
         // turning signals
-
-        if (msg->drive.steering_angle > param_.turning_threshold_rad ||
-            (param_.hazard_when_backing_up && msg->drive.speed < -0.1))
+        if (param_.turn_right ||
+            msg->drive.steering_angle > param_.turning_threshold_rad ||
+            (param_.hazard_when_backing_up && msg->drive.speed < -param_.backwards_hazard_m_s))
         {
             // RCLCPP_INFO(this->get_logger(), "blink right");
             new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = param_.indicator_intensity;
@@ -140,9 +157,10 @@ private:
         {
             new_state[getOffsetFromTopic(indicators::Topic::indicatorRight)] = 0x00;
         }
-        // turning signal left
-        if (msg->drive.steering_angle < -param_.turning_threshold_rad ||
-            (param_.hazard_when_backing_up && msg->drive.speed < -0.1))
+
+        if (param_.turn_left ||
+            msg->drive.steering_angle < -param_.turning_threshold_rad ||
+            (param_.hazard_when_backing_up && msg->drive.speed < -param_.backwards_hazard_m_s))
         {
             // RCLCPP_INFO(this->get_logger(), "blink left");
             new_state[getOffsetFromTopic(indicators::Topic::indicatorLeft)] = param_.indicator_intensity;
@@ -156,7 +174,7 @@ private:
         {
             new_state[getOffsetFromTopic(indicators::Topic::headlight)] = param_.tagfahrlicht_intensity;
         }
-        if (false ) // Headlight when dark? Und assi BMW Aufblenden?
+        if (param_.flash)
         {
             new_state[getOffsetFromTopic(indicators::Topic::headlight)] = param_.headlights_intensity;
         }
@@ -184,8 +202,24 @@ private:
         return static_cast<std::underlying_type_t<indicators::Topic>>(topic);
     }
 
-    std::map<size_t, rclcpp::Publisher<std_msgs::msg::Byte>::SharedPtr> lightingPublishers_;
+    void addLightingSubscription(bool& which_field, std::string name)
+    {
+        RCLCPP_INFO(this->get_logger(),
+            "setting up listener on %s", name.c_str());
+        auto subs = this->create_subscription<std_msgs::msg::Bool>(
+                name,
+                rclcpp::SensorDataQoS(),
+                [&which_field](const std_msgs::msg::Bool::SharedPtr msg)
+                {
+                    which_field = msg->data;
+                }
+                );
+        lightingInputSubscriptions_.push_back(std::move(subs));
+    }
+
+    std::vector<rclcpp::Publisher<std_msgs::msg::Byte>::SharedPtr> lightingPublishers_;
     rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr steeringInputSubscription_;
+    std::vector<rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr> lightingInputSubscriptions_;
 
     std::array<uint8_t, indicators::topics.size()> last_state_;
     ackermann_msgs::msg::AckermannDriveStamped last_msg_;
