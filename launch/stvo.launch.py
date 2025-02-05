@@ -40,7 +40,7 @@ def generate_launch_description():
     )
 
     # launch it delayed, because it seems that it needs the existing topics
-    timed_stvo_translator = TimerAction(period=8.0, actions=[stvo_translator])
+    timed_stvo_translator = TimerAction(period=4.0, actions=[stvo_translator])
 
     ld.add_action(timed_stvo_translator)
     return ld

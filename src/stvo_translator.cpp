@@ -171,13 +171,17 @@ public:
             new_state[getOffsetFromTopic(indicators::Topic::indicatorLeft)] = 0x00;
         }
 
-        if (param_.tagfahrlicht)
-        {
-            new_state[getOffsetFromTopic(indicators::Topic::headlight)] = param_.tagfahrlicht_intensity;
-        }
         if (param_.flash)
         {
             new_state[getOffsetFromTopic(indicators::Topic::headlight)] = param_.headlights_intensity;
+        }
+        else if (param_.tagfahrlicht)
+        {
+            new_state[getOffsetFromTopic(indicators::Topic::headlight)] = param_.tagfahrlicht_intensity;
+        }
+        else 
+        {
+            new_state[getOffsetFromTopic(indicators::Topic::headlight)] = 0;
         }
 
         // Apply changes
