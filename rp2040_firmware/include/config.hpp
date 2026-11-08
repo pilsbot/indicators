@@ -13,7 +13,7 @@ struct LightPos
     uint8_t len;
 };
 
-static constexpr LightPos rear_right  = {0, 32};
+static constexpr LightPos rear_right  = {0, 32 - 2};    // minus two because two leds died and are bridged now
 static constexpr LightPos rear_left   = {rear_right.offs + rear_right.len, 32};
 static constexpr LightPos front_left  = {rear_left.offs  + rear_left.len,  32};
 static constexpr LightPos front_right = {front_left.offs + front_left.len, 32};
