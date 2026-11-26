@@ -1,6 +1,6 @@
 pilsbot_indiator_bridge:
   ros__parameters:
-    serial_port: "/dev/ttyLighting"
+    # serial_port comes from the robot profile (launch/bridge.launch.py)
     baud_rate: 115200
 
 pilsbot_stvo_translation:

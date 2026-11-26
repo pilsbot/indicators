@@ -22,10 +22,10 @@ def generate_launch_description():
         )
 
     included_bridge_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([ThisLaunchFileDir(), '/bridge.launch.py'])
-        # launch_arguments={
-        #     "serial_port" : LaunchConfiguration("serial_port"),
-        # }.items()
+        PythonLaunchDescriptionSource([ThisLaunchFileDir(), '/bridge.launch.py']),
+        launch_arguments={
+            'robot_profile': LaunchConfiguration('robot_profile', default='pilsbot'),
+        }.items()
     )
     ld.add_action(included_bridge_launch)
 
