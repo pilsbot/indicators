@@ -82,16 +82,16 @@ public:
         for (const auto& topic : indicators::topics)
         {
             const auto& offset = getOffsetFromTopic(topic);
-            RCLCPP_INFO(this->get_logger(),
-                "setting up publisher on " + param_.prefix_lighting_publish + indicators::getTopicName(topic));
+            RCLCPP_INFO(this->get_logger(), "setting up publisher on %s%s",
+                param_.prefix_lighting_publish.c_str(), indicators::getTopicName(topic));
             // the following might throw because something something reverse ion thrusters
             // https://github.com/ros2/rcl/issues/1118
             lightingPublishers_[offset] = this->create_publisher<std_msgs::msg::Byte>(
                     param_.prefix_lighting_publish + indicators::getTopicName(topic), rclcpp::SensorDataQoS());
         }
 
-        RCLCPP_INFO(this->get_logger(),
-                "Brake-time: " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(param_.min_brake_time).count()) + "ms");
+        RCLCPP_INFO(this->get_logger(), "Brake-time: %lld ms",
+                static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(param_.min_brake_time).count()));
 
         // Initial publish to default values
         cmd_callback(std::make_shared<ackermann_msgs::msg::AckermannDriveStamped>(last_msg_));
