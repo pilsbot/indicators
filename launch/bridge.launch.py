@@ -29,6 +29,11 @@ def launch_setup(context):
         name = 'pilsbot_indiator_bridge',
         executable = 'pilsbot_indiator_bridge',
         # The serial port comes from the robot profile.
-        parameters = [config, {'serial_port': robot_profile.devices['lighting']}]
+        parameters = [config, {'serial_port': robot_profile.devices['lighting']}],
+        # The bridge aborts when the lighting board's serial port is missing
+        # (unplugged or not enumerated yet); start it again until it is there.
+        # The StVO lights must come back without restarting the stack.
+        respawn = True,
+        respawn_delay = 5.0,
     )
     return [node]
